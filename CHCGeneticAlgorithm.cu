@@ -1,3 +1,6 @@
+//Look at Apache Messaging Queue
+
+
 #include <iostream>
 
 #define MAXPOP 32768
@@ -69,6 +72,8 @@ float RandomFraction(){
 	//return uniformFloat01Distribution(random);
 }
 
+enum processor {CPU,GPU};
+
 typedef struct {
 	std::string infile;
 	std::string outfile;
@@ -79,6 +84,7 @@ typedef struct {
 	int popSize;
 	int chromLength;
 	unsigned int maxgens;
+	processor myTask;
 	float px;
 	float pm;
 
@@ -130,14 +136,27 @@ public:
 double Eval(Individual *individual){
 	double sum = 0;
 	//_sleep(10);
-	printf("REEEEEEEEEEEEE!");
-	for(int i = 0; i < individual->chromLength; i++){
-		sum += (individual->chromosome[i] == 1 ? 1: 0);
+	// for(int i = 0; i < individual->chromLength; i++){
+	// 	sum += (individual->chromosome[i] == 1 ? 1: 0);
+	// }
+	for(int o = 0; o < 300000; o++)
+	{
+		for(int i = 0; i < individual->chromLength; i++)
+		{
+			if(i%2==1)
+				sum+=individual->chromosome[i];
+		}
+		for(int i = 0; i < individual->chromLength; i++)
+		{
+			if(i%2==0)
+				sum-=individual->chromosome[i];
+		}
 	}
 	return sum;
 }
 
 double Eval(Individual *individual);
+
 
 class GA {
 
@@ -169,8 +188,8 @@ int main(int argc, char * argv[])
 	//std::cout << "MyRandom:"<<MyRandom()<<","<<MyRandom()<<","<<MyRandom()<<","<<MyRandom()<<","<<MyRandom()<<","<<std::endl;
 	GA ga(argc, argv);
 
-	ga.Init();
 	auto beg = std::chrono::high_resolution_clock::now();
+	ga.Init();
 	ga.CHCRun();
 	auto end = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - beg);
@@ -247,7 +266,7 @@ __global__ void EvalGPU(Individual* members, int length)
 		// for(int i = 0; i < members[index].chromLength; i++){
 		// 	sum += (members[index].chromosome[i] == 1 ? 1: 0);
 		// }
-		for(int o = 0; o < 3000; o++)
+		for(int o = 0; o < 300000; o++)
 		{
 			for(int i = 0; i < members[index].chromLength; i++)
 			{
@@ -270,12 +289,22 @@ void Population::Evaluate(){
 	size_t size = options.popSize*2*sizeof(Individual);
 
 	//printf("%i,%i,%i,%i",(int)sizeof(int),(int)sizeof(int)*options.chromLength,(int)sizeof(Individual),size);
-
+	switch (options.myTask)
+	{
+	case CPU:
+		for(int i = 0;i < options.popSize*2;i++)
+		{
+			members[i].fitness = Eval(&(members[i]));
+		}
+	case GPU:
+		cudaMemcpy(members_d,members,size,cudaMemcpyHostToDevice);
+		EvalGPU<<<(options.popSize*2+255)/256, 256>>>(members_d,options.popSize*2);
+		cudaMemcpy(members,members_d,size,cudaMemcpyDeviceToHost);
+		break;
 	
-	cudaMemcpy(members_d,members,size,cudaMemcpyHostToDevice);
-	EvalGPU<<<(options.popSize*2+255)/256, 256>>>(members_d,options.popSize*2);
-	cudaMemcpy(members,members_d,size,cudaMemcpyDeviceToHost);
-
+	default:
+		break;
+	}
 	//free(fitValues);
 	//cudaFree(fitValues_d);
 	// for (int i = 0; i < options.popSize; i++){
@@ -287,11 +316,26 @@ void Population::EvaluateLower(){
 	size_t size = options.popSize*sizeof(Individual);
 
 	//printf("%i,%i,%i,%i",(int)sizeof(int),(int)sizeof(int)*options.chromLength,(int)sizeof(Individual),size);
-
+	switch (options.myTask)
+	{
+	case CPU:
+		for(int i = options.popSize;i < options.popSize;i++)
+		{
+			members[i].fitness = Eval(&(members[i]));
+		}
+		break;
+	case GPU:
+		cudaMemcpy(members_d+size,members+size,size,cudaMemcpyHostToDevice);
+		EvalGPU<<<(options.popSize+255)/256, 256>>>(members_d+size,options.popSize);
+		cudaMemcpy(members+size,members_d+size,size,cudaMemcpyDeviceToHost);
+		break;
 	
-	cudaMemcpy(members_d+size,members+size,size,cudaMemcpyHostToDevice);
-	EvalGPU<<<(options.popSize+255)/256, 256>>>(members_d+size,options.popSize);
-	cudaMemcpy(members+size,members_d+size,size,cudaMemcpyDeviceToHost);
+	default:
+		break;
+	}
+	
+	
+	
 	//free(fitValues);
 	//cudaFree(fitValues_d);
 	// for (int i = 0; i < options.popSize; i++){
@@ -447,12 +491,12 @@ GA::~GA() {
 	// TODO Auto-generated destructor stub
 }
 
-
 void GA::SetupOptions(int argc, char *argv[]){
 	options.randomSeed = time(NULL);
 	//Make sure to make pop size a power of two if you can help it 
-	options.popSize = 4096;
+	options.popSize = 8192;
 	options.chromLength = 10;
+	options.myTask = CPU;
 	options.maxgens = 5;
 	options.px = 0.95f;
 	options.pm = 0.1f;
@@ -460,6 +504,9 @@ void GA::SetupOptions(int argc, char *argv[]){
 	options.outfile = std::string("outfile");
 	//options.graphInfile = std::string("graph-raw.csv");
 }
+
+//https://www.cse.unr.edu/~miles/projects/pga/index.htm
+//https://github.com/sushillouis/GASharp
 
 void GA::Init(){
 	//EvalInit(options);
