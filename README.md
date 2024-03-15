@@ -19,9 +19,9 @@ The GA functions largely the same as a normal GA, although an induvidual is impl
 ### Implementation Details
 This is the EvalGPU Call
 ```
- cudaMemcpy(members_d,members,size,cudaMemcpyHostToDevice);
- EvalGPU<<<(options.popSize*2+255)/256, 256>>>(members_d,options.popSize*2);
-	cudaMemcpy(members,members_d,size,cudaMemcpyDeviceToHost);
+cudaMemcpy(members_d,members,size,cudaMemcpyHostToDevice);
+EvalGPU<<<(options.popSize*2+255)/256, 256>>>(members_d,options.popSize*2);
+cudaMemcpy(members,members_d,size,cudaMemcpyDeviceToHost);
 ```
 This coppies the data from the members array (The array of Induviduals) to the GPU. Note that size is computed above via
 ```
