@@ -30,6 +30,9 @@ size_t size = options.popSize*2*sizeof(Individual);
 **Note that it is very important to treat this like malloc or memcpy** as any internal pointers will not be deep copied, and an array can only be coppied easily if it is staticly allocated with non-pointer data (such as structs), wheras classes if if contained in the array via pointers will not be coppied.
 Then ```EvalGPU<<<(options.popSize*2+255)/256, 256>>>(members_d,options.popSize*2)``` is called which is a ```__global__``` function and is passed as follows ```<<<numbOfCores,numbOfThreads>>>(standardFuncArgs);```
 
+Execution Usually will look like this
+![Parrallel Execution Diagram](https://docs.nvidia.com/cuda/cuda-c-programming-guide/_images/heterogeneous-programming.png)
+
 ### Setup
 1. Download NVIDA CUDA Tools: [https://developer.nvidia.com/cuda-toolkit](https://developer.nvidia.com/cuda-toolkit)
 2. Instal
