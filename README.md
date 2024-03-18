@@ -31,6 +31,7 @@ size_t size = options.popSize*2*sizeof(Individual);
 Then ```EvalGPU<<<(options.popSize*2+255)/256, 256>>>(members_d,options.popSize*2)``` is called which is a ```__global__``` function and is passed as follows ```<<<numbOfCores,numbOfThreads>>>(standardFuncArgs);```
 
 Execution Usually will look like this
+
 ![Parrallel Execution Diagram](https://docs.nvidia.com/cuda/cuda-c-programming-guide/_images/heterogeneous-programming.png)
 
 ### Setup
