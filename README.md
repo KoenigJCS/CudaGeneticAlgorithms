@@ -7,6 +7,8 @@
 
 ### GA
 The GA functions largely the same as a normal GA, although an induvidual is implemented as a struct instead of a class for reasons seen later.
+The primary changer is the usage of NVIDA cuda to take advantage of GPU processing which can solve much more fitness equations in parrallel than the CPU.
+![GPU Diagram](https://docs.nvidia.com/cuda/cuda-c-programming-guide/_images/gpu-devotes-more-transistors-to-data-processing.png)
 *This can also be split into multiple files easily, my Visual Studio Instance was giving me trouble on compiling.*
 
 ### Conceptual Idea
